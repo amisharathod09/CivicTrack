@@ -11,3 +11,15 @@ class UserRegister(BaseModel):
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
+class UserResponse(BaseModel):
+    user_id: int
+    full_name: str
+    email: EmailStr
+    phone: str | None
+    role: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str 

@@ -8,7 +8,7 @@ from app.routes.assignment_routes import router as assignment_router
 from app.routes.status_history_routes import router as status_history_router
 from app.routes.feedback_routes import router as feedback_router
 from app.routes.attachment_routes import router as attachment_router
-
+from app.routes.auth_routes import router as auth_router
 
 # Create FastAPI application
 app = FastAPI(
@@ -27,7 +27,7 @@ app.include_router(assignment_router)
 app.include_router(status_history_router)
 app.include_router(feedback_router)
 app.include_router(attachment_router)
-
+app.include_router(auth_router)
 
 # Home endpoint
 @app.get("/")
