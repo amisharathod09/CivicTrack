@@ -1,9 +1,11 @@
+
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import StatusHistory
+from app.models import StatusHistory, User
+from app.utils.auth_dependencies import require_roles
 
 
 router = APIRouter(
@@ -12,8 +14,12 @@ router = APIRouter(
 )
 
 
+# Get all status history records (Admin only)
 @router.get("")
-def get_status_history(db: Session = Depends(get_db)):
+def get_status_history(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("admin"))
+):
 
     history_records = db.scalars(
         select(StatusHistory).order_by(
