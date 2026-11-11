@@ -13,3 +13,4 @@ __pycache__/
 .env
 .vscode/
 *.mwb.bak
+backend/uploads/
