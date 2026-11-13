@@ -110,6 +110,16 @@ def cancel_complaint(
         # 4. Update complaint status
         complaint.status = "Cancelled"
 
+        # Mark any current assignment as historical
+        current_assignment = db.scalar(
+            select(Assignment).where(
+                Assignment.request_id == request_id,
+                Assignment.is_current.is_(True)
+            )
+        )
+        if current_assignment is not None:
+            current_assignment.is_current = False
+
         # 5. Create status history record
         cancellation_history = StatusHistory(
             request_id=complaint.request_id,
@@ -181,9 +191,10 @@ def update_staff_complaint_status(
         # 4. Update complaint status
         complaint.status = status_data.status
 
-        # 5. Record resolution time
+        # 5. Record resolution time and close current assignment
         if status_data.status == "Resolved":
             complaint.resolved_at = datetime.now()
+            current_assignment.is_current = False
 
         # 6. Create status history
         history_record = StatusHistory(

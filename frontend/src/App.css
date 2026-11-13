@@ -1,0 +1,540 @@
+
+/* RESET */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: #f5f8fc;
+  color: #1e293b;
+}
+
+/* MAIN LAYOUT */
+.app {
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* SIDEBAR - ALWAYS EXPANDED */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 220px;
+  height: 100vh;
+  padding: 22px 14px;
+  background: #172554;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+  overflow-y: auto;
+}
+
+/* BRAND */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 5px;
+  margin-bottom: 42px;
+  white-space: nowrap;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.brand-icon {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: #2563eb;
+  color: white;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+/* SIDEBAR LABEL */
+.sidebar-label {
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  padding: 0 12px;
+  margin-bottom: 15px;
+}
+
+/* NAVIGATION */
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.sidebar-nav a {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 11px 12px;
+  border-radius: 8px;
+  color: #cbd5e1;
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.sidebar-nav a svg {
+  width: 21px;
+  height: 21px;
+  min-width: 21px;
+  flex-shrink: 0;
+  stroke-width: 2;
+}
+
+.sidebar-nav a:hover {
+  background: #263b70;
+  color: white;
+}
+
+.sidebar-nav a.active {
+  background: #2563eb;
+  color: white;
+}
+
+/* LOGIN AND REGISTER */
+.sidebar-bottom {
+  margin-top: auto;
+  padding-top: 25px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sidebar-login,
+.sidebar-register {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  text-align: center;
+  text-decoration: none;
+  border-radius: 7px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.sidebar-login {
+  color: white;
+  border: 1px solid #475569;
+}
+
+.sidebar-register {
+  color: white;
+  background: #2563eb;
+}
+
+.sidebar-login:hover {
+  background: #263b70;
+}
+
+.sidebar-register:hover {
+  background: #1d4ed8;
+}
+
+/* MAIN CONTENT */
+.main-content {
+  margin-left: 220px;
+  width: calc(100% - 220px);
+  min-height: 100vh;
+}
+
+/* HERO SECTION */
+.hero-section {
+  min-height: 470px;
+  padding: 80px 9%;
+  display: flex;
+  align-items: center;
+  background: linear-gradient(120deg, #eaf2ff, #f0faf9);
+}
+
+.hero-content {
+  max-width: 760px;
+}
+
+.hero-tag {
+  display: inline-block;
+  padding: 8px 13px;
+  border-radius: 20px;
+  background: #dceaff;
+  color: #155eef;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: 22px;
+}
+
+.hero-content h1 {
+  font-size: clamp(36px, 4vw, 55px);
+  line-height: 1.15;
+  color: #172554;
+  margin-bottom: 20px;
+}
+
+.hero-content h1 span {
+  color: #155eef;
+}
+
+.hero-content p {
+  max-width: 620px;
+  color: #64748b;
+  font-size: 17px;
+  line-height: 1.8;
+  margin-bottom: 28px;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.primary-btn,
+.secondary-btn {
+  display: inline-block;
+  padding: 13px 23px;
+  border-radius: 7px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.primary-btn {
+  background: #155eef;
+  color: white;
+}
+
+.primary-btn:hover {
+  background: #1d4ed8;
+}
+
+.secondary-btn {
+  background: white;
+  color: #155eef;
+  border: 1px solid #cbdcf9;
+}
+
+.secondary-btn:hover {
+  background: #eff6ff;
+}
+
+/* SERVICES SECTION */
+.services-section {
+  padding: 65px 7%;
+  background: #f5f8fc;
+}
+
+.section-heading {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.section-heading h2,
+.about-section h2 {
+  font-size: 30px;
+  color: #172554;
+  margin-bottom: 12px;
+}
+
+.section-heading p,
+.about-section p {
+  color: #64748b;
+  line-height: 1.7;
+}
+
+.service-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.service-card {
+  padding: 30px 25px;
+  background: white;
+  border: 1px solid #e5eaf1;
+  border-radius: 12px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.service-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 28px rgba(30, 64, 175, 0.08);
+}
+
+.service-card h3 {
+  color: #155eef;
+  font-size: 19px;
+  margin-bottom: 13px;
+}
+
+.service-card p {
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+/* ABOUT SECTION */
+.about-section {
+  padding: 55px 10%;
+  text-align: center;
+  background: #eaf2ff;
+}
+
+.about-section p {
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+/* FOOTER */
+.footer {
+  padding: 17px 20px;
+  text-align: center;
+  background: #172554;
+  color: #dbeafe;
+  font-size: 12px;
+}
+
+/* TABLET */
+@media (max-width: 950px) {
+  .sidebar {
+    width: 200px;
+  }
+
+  .main-content {
+    margin-left: 200px;
+    width: calc(100% - 200px);
+  }
+
+  .service-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* MOBILE */
+@media (max-width: 600px) {
+  .sidebar {
+    position: relative;
+    width: 100%;
+    height: auto;
+    padding: 15px;
+  }
+
+  .brand {
+    margin-bottom: 18px;
+  }
+
+  .sidebar-label {
+    display: none;
+  }
+
+  .sidebar-nav {
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 5px;
+  }
+
+  .sidebar-nav a {
+    width: auto;
+    flex-shrink: 0;
+    padding: 10px;
+  }
+
+  .sidebar-nav a span {
+    display: none;
+  }
+
+  .sidebar-bottom {
+    flex-direction: row;
+    padding-top: 15px;
+  }
+
+  .main-content {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .hero-section {
+    min-height: 380px;
+    padding: 55px 7%;
+  }
+
+  .hero-content h1 {
+    font-size: 36px;
+  }
+
+  .services-section {
+    padding: 45px 6%;
+  }
+
+  .service-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* SIDEBAR COLLAPSE AND HOVER EXPANSION */
+
+.sidebar {
+  width: 76px;
+  padding: 22px 10px;
+  transition: width 0.3s ease, padding 0.3s ease;
+}
+
+.sidebar:hover {
+  width: 220px;
+  padding: 22px 14px;
+}
+
+/* Hide text when collapsed */
+.sidebar .brand > span:not(.brand-icon),
+.sidebar .sidebar-label,
+.sidebar .sidebar-nav a span,
+.sidebar .sidebar-bottom {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease;
+}
+
+/* Show text when expanded */
+.sidebar:hover .brand > span:not(.brand-icon),
+.sidebar:hover .sidebar-label,
+.sidebar:hover .sidebar-nav a span,
+.sidebar:hover .sidebar-bottom {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Keep icons visible */
+.sidebar-nav a svg {
+  flex-shrink: 0;
+  min-width: 21px;
+}
+
+/* Center icons in collapsed mode */
+.sidebar:not(:hover) .brand {
+  justify-content: center;
+  padding: 0;
+}
+
+.sidebar:not(:hover) .sidebar-nav a {
+  justify-content: center;
+  padding: 11px 0;
+}
+
+.sidebar:not(:hover) .sidebar-nav a span {
+  display: none;
+}
+
+/* Main content follows sidebar */
+.main-content {
+  margin-left: 76px;
+  width: calc(100% - 76px);
+  transition: margin-left 0.3s ease, width 0.3s ease;
+}
+
+.app:has(.sidebar:hover) .main-content {
+  margin-left: 220px;
+  width: calc(100% - 220px);
+}
+
+/* Disable collapsing on mobile */
+@media (max-width: 600px) {
+  .sidebar {
+    width: 100%;
+    padding: 15px;
+  }
+
+  .sidebar:hover {
+    width: 100%;
+    padding: 15px;
+  }
+
+  .sidebar .brand > span:not(.brand-icon),
+  .sidebar .sidebar-nav a span {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .sidebar .sidebar-bottom {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .main-content,
+  .app:has(.sidebar:hover) .main-content {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+/* Keep CivicTrack logo visible when sidebar is collapsed */
+.sidebar .brand .brand-icon {
+  display: grid !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  flex-shrink: 0;
+  background: #2563eb;
+  color: #ffffff;
+  border-radius: 10px;
+  font-size: 24px;
+  font-weight: 700;
+  place-items: center;
+}
+/* FORCE CIVICTRACK LOGO TO SHOW IN COLLAPSED SIDEBAR */
+
+.sidebar:not(:hover) .brand {
+  display: flex !important;
+  width: 100% !important;
+  height: 45px !important;
+  min-height: 45px !important;
+  margin-bottom: 42px !important;
+  padding: 0 !important;
+  justify-content: center !important;
+  align-items: center !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.sidebar:not(:hover) .brand .brand-icon {
+  display: flex !important;
+  width: 42px !important;
+  min-width: 42px !important;
+  height: 42px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #2563eb !important;
+  color: white !important;
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  border-radius: 10px !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  flex-shrink: 0 !important;
+}
+
+.sidebar:not(:hover) .brand > span:not(.brand-icon) {
+  display: none !important;
+}

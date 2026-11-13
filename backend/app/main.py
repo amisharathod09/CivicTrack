@@ -9,6 +9,7 @@ from app.routes.status_history_routes import router as status_history_router
 from app.routes.feedback_routes import router as feedback_router
 from app.routes.attachment_routes import router as attachment_router
 from app.routes.auth_routes import router as auth_router
+from app.routes.analytics_routes import router as analytics_router
 
 # Create FastAPI application
 app = FastAPI(
@@ -28,6 +29,7 @@ app.include_router(status_history_router)
 app.include_router(feedback_router)
 app.include_router(attachment_router)
 app.include_router(auth_router)
+app.include_router(analytics_router)
 
 # Home endpoint
 @app.get("/")
