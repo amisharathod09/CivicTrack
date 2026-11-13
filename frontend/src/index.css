@@ -7,6 +7,27 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* Light theme */
+  --app-bg: #f5f8fc;
+  --surface: #ffffff;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --border-color: #e2e8f0;
+  --input-bg: #ffffff;
+  --shadow-color: rgba(15, 23, 42, 0.06);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --app-bg: #111827;
+  --surface: #1f2937;
+  --text-primary: #f1f5f9;
+  --text-secondary: #a7b3c5;
+  --border-color: #374151;
+  --input-bg: #273449;
+  --shadow-color: rgba(0, 0, 0, 0.2);
 }
 
 * {
@@ -23,7 +44,9 @@ body {
 
 body {
   margin: 0;
-  background: #f5f8fc;
+  background: var(--app-bg);
+  color: var(--text-primary);
+  transition: background 0.25s ease, color 0.25s ease;
 }
 
 #root {
