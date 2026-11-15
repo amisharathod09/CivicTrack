@@ -322,6 +322,10 @@ function AdminDashboard() {
 
           <div className="sla-details">
             <div>
+              <span>SLA-eligible complaints</span>
+              <strong>{sla.total_complaints_with_sla ?? 0}</strong>
+            </div>
+            <div>
               <span>Resolved on time</span>
               <strong>{sla.resolved_within_sla}</strong>
             </div>
@@ -377,13 +381,28 @@ function AdminDashboard() {
                   />
 
                   <Tooltip />
+                  <Legend />
 
                   <Bar
-                    dataKey="total_complaints"
-                    name="Complaints"
+                    dataKey="resolved_complaints"
+                    name="Resolved"
+                    stackId="a"
+                    fill="#36A879"
+                  />
+
+                  <Bar
+                    dataKey="active_complaints"
+                    name="Active"
+                    stackId="a"
                     fill="#438ED0"
-                    radius={[0, 5, 5, 0]}
-                    barSize={15}
+                  />
+
+                  <Bar
+                     dataKey="cancelled_complaints"
+                     name="Cancelled"
+                     stackId="a"
+                     fill="#E6A23C"
+                     radius={[0, 5, 5, 0]}
                   />
                 </BarChart>
               </ResponsiveContainer>

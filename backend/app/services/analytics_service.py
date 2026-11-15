@@ -170,7 +170,14 @@ def get_category_analytics(db: Session):
                     1,
                     0
                 )
-            ).label("active")
+            ).label("active"),
+            func.sum(
+                func.if_(
+                    ServiceRequest.status == "Cancelled",
+                    1,
+                    0
+                    )
+            ).label("cancelled")
         )
         .join(
             ServiceRequest,
@@ -205,6 +212,7 @@ def get_category_analytics(db: Session):
             "total_complaints": result.total,
             "resolved_complaints": result.resolved or 0,
             "active_complaints": result.active or 0,
+            "cancelled_complaints": result.cancelled or 0,
             "percentage": round(percentage, 2)
         })
 
@@ -344,10 +352,11 @@ def get_staff_workload_analytics(db: Session):
 
 def get_sla_performance_analytics(db: Session):
 
-    # Total complaints with an SLA deadline
+   # Total non-cancelled complaints with an SLA deadline
     total_with_sla = db.scalar(
-        select(func.count(ServiceRequest.request_id)).where(
-            ServiceRequest.sla_due_at.is_not(None)
+       select(func.count(ServiceRequest.request_id)).where(
+           ServiceRequest.status != "Cancelled",
+           ServiceRequest.sla_due_at.is_not(None)
         )
     ) or 0
 
