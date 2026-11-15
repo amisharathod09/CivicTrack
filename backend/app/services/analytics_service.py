@@ -59,6 +59,7 @@ def get_complaint_overview(db: Session):
     }
 
 
+
 def get_complaint_trends(db: Session):
 
     # Count complaints submitted each month
@@ -97,10 +98,35 @@ def get_complaint_trends(db: Session):
         for month, total in resolved_trends
     }
 
-    # Combine all months from both datasets
+    # Find months available in either dataset
     all_months = sorted(
         set(submitted_data) | set(resolved_data)
     )
+
+    # Include every month between the first and last month
+    if all_months:
+        start_year, start_month = map(
+            int, all_months[0].split("-")
+        )
+        end_year, end_month = map(
+            int, all_months[-1].split("-")
+        )
+
+        complete_months = []
+
+        while (start_year, start_month) <= (end_year, end_month):
+            complete_months.append(
+                f"{start_year:04d}-{start_month:02d}"
+            )
+
+            start_month += 1
+
+            if start_month > 12:
+                start_month = 1
+                start_year += 1
+
+    else:
+        complete_months = []
 
     # Prepare monthly comparison
     trends = [
@@ -109,7 +135,7 @@ def get_complaint_trends(db: Session):
             "submitted": submitted_data.get(month, 0),
             "resolved": resolved_data.get(month, 0)
         }
-        for month in all_months
+        for month in complete_months
     ]
 
     return {
@@ -117,8 +143,6 @@ def get_complaint_trends(db: Session):
         "trends": trends
     }
 
-
-from app.models.category import Category
 
 
 def get_category_analytics(db: Session):
@@ -442,6 +466,7 @@ def get_priority_analytics(db: Session):
         "priorities": priorities
     }
 
+
 def get_resolution_time_analytics(db: Session):
 
     # Calculate overall resolution time in seconds
@@ -477,6 +502,45 @@ def get_resolution_time_analytics(db: Session):
             ServiceRequest.resolved_at.is_not(None)
         )
     ).one()
+
+    # Retrieve individual resolution times for median calculation
+    resolution_durations = db.execute(
+        select(
+            func.timestampdiff(
+                literal_column("SECOND"),
+                ServiceRequest.created_at,
+                ServiceRequest.resolved_at
+            )
+        )
+        .where(
+            ServiceRequest.status.in_(["Resolved", "Closed"]),
+            ServiceRequest.resolved_at.is_not(None)
+        )
+        .order_by(
+            func.timestampdiff(
+                literal_column("SECOND"),
+                ServiceRequest.created_at,
+                ServiceRequest.resolved_at
+            )
+        )
+    ).scalars().all()
+
+    # Calculate median resolution time
+    median_seconds = 0
+
+    if resolution_durations:
+        count = len(resolution_durations)
+        middle = count // 2
+
+        if count % 2 == 0:
+            median_seconds = (
+                resolution_durations[middle - 1]
+                + resolution_durations[middle]
+            ) / 2
+        else:
+            median_seconds = resolution_durations[middle]
+
+    median_hours = median_seconds / 3600
 
     # Calculate resolution time grouped by priority
     priority_data = db.execute(
@@ -538,6 +602,7 @@ def get_resolution_time_analytics(db: Session):
     return {
         "total_resolved_complaints": overall.total_resolved,
         "average_resolution_hours": round(average_hours, 2),
+        "median_resolution_hours": round(median_hours, 2),
         "minimum_resolution_hours": round(minimum_hours, 2),
         "maximum_resolution_hours": round(maximum_hours, 2),
         "priority_breakdown": priority_breakdown

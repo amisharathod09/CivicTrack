@@ -539,32 +539,37 @@ function AdminDashboard() {
         </div>
 
         {/* RESOLUTION TIME */}
-        <div className="analytics-card">
-          <h3>Resolution Time</h3>
-          <p>Average time taken to resolve complaints</p>
+<div className="analytics-card">
+  <h3>Resolution Time</h3>
+  <p>Average time taken to resolve complaints</p>
 
-          <div className="resolution-value">
-            {resolution.average_resolution_hours ?? 0}
-            <span> hours</span>
-          </div>
+  <div className="resolution-value">
+    {resolution.average_resolution_hours ?? 0}
+    <span> hours</span>
+  </div>
 
-          <div className="sla-details">
-            <div>
-              <span>Minimum</span>
-              <strong>{resolution.minimum_resolution_hours ?? 0} hrs</strong>
-            </div>
+  <div className="sla-details">
+    <div>
+      <span>Median</span>
+      <strong>{resolution.median_resolution_hours ?? 0} hrs</strong>
+    </div>
 
-            <div>
-              <span>Maximum</span>
-              <strong>{resolution.maximum_resolution_hours ?? 0} hrs</strong>
-            </div>
+    <div>
+      <span>Minimum</span>
+      <strong>{resolution.minimum_resolution_hours ?? 0} hrs</strong>
+    </div>
 
-            <div>
-              <span>Total resolved</span>
-              <strong>{resolution.total_resolved_complaints}</strong>
-            </div>
-          </div>
-        </div>
+    <div>
+      <span>Maximum</span>
+      <strong>{resolution.maximum_resolution_hours ?? 0} hrs</strong>
+    </div>
+
+    <div>
+      <span>Total resolved</span>
+      <strong>{resolution.total_resolved_complaints}</strong>
+    </div>
+  </div>
+</div>
 
         {/* CITIZEN FEEDBACK */}
         <div className="analytics-card">
