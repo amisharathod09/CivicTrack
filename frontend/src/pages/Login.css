@@ -192,3 +192,13 @@
     width: 125px;
   }
 }
+
+.login-success {
+  color: #16804a;
+  background: #eaf8f0;
+  border: 1px solid #c8ead6;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  margin-bottom: 16px;
+}

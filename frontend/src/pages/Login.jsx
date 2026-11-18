@@ -1,6 +1,6 @@
 
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { saveAccessToken, clearAccessToken } from '../services/api'
 import api from '../services/api'
 import ThemeToggle from '../components/ThemeToggle'
@@ -8,11 +8,14 @@ import './Login.css'
 
 function Login() {
   const navigate = useNavigate()
+  const location = useLocation()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  const successMessage = location.state?.message
 
   const handleLogin = async (event) => {
     event.preventDefault()
@@ -30,14 +33,18 @@ function Login() {
       saveAccessToken(response.data.access_token)
 
       const userResponse = await api.get('/auth/me')
+      const role = userResponse.data.role
 
-      if (userResponse.data.role !== 'admin') {
+      if (role === 'admin') {
+        navigate('/admin', { replace: true })
+      } else if (role === 'staff') {
+        navigate('/staff', { replace: true })
+      } else if (role === 'citizen') {
+        navigate('/citizen', { replace: true })
+      } else {
         clearAccessToken()
-        setError('Access denied. Only administrators can access this dashboard.')
-        return
+        setError('Your account has an unrecognized role. Please contact support.')
       }
-
-      navigate('/admin')
     } catch (err) {
       clearAccessToken()
 
@@ -53,20 +60,26 @@ function Login() {
   return (
     <div className="login-page">
       <div className="login-theme-toggle">
-  <ThemeToggle />
-</div>
+        <ThemeToggle />
+      </div>
+
       <div className="login-card">
         <div className="login-brand">
           <span className="login-brand-icon">C</span>
           <span>CivicTrack</span>
         </div>
 
-        <span className="login-tag">ADMINISTRATION</span>
+        <span className="login-tag">SECURE LOGIN</span>
 
         <h1>Welcome Back</h1>
+
         <p className="login-description">
-          Sign in to access the CivicTrack administration dashboard.
+          Sign in to access your CivicTrack account and services.
         </p>
+
+        {successMessage && (
+          <p className="login-success">{successMessage}</p>
+        )}
 
         <form onSubmit={handleLogin}>
           <label htmlFor="email">Email Address</label>
@@ -97,7 +110,7 @@ function Login() {
         </form>
 
         <p className="login-footer">
-          Secure access for authorized administrators only.
+          Don't have an account? <Link to="/register">Create Account</Link>
         </p>
       </div>
     </div>

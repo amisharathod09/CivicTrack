@@ -6,7 +6,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import Assignment, Attachment, ServiceRequest, User
-
+from io import BytesIO
+from PIL import Image, UnidentifiedImageError
 
 # Storage directory: E:\CivicTrack\backend\uploads
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -24,7 +25,7 @@ ALLOWED_EXTENSIONS = {
 
 
 def validate_image(file_content: bytes, extension: str):
-    """Validate image extension, content and file signature."""
+    """Validate image extension, content, signature and actual image integrity."""
 
     if not file_content:
         return False, "Uploaded file is empty."
@@ -44,8 +45,18 @@ def validate_image(file_content: bytes, extension: str):
 
         mime_type = "image/png"
 
-    return True, mime_type
+    # Verify that the file is a readable and valid image
+    try:
+        with Image.open(BytesIO(file_content)) as image:
+            if image.format not in ["JPEG", "PNG"]:
+                return False, "Unsupported image format."
 
+            image.verify()
+
+    except (UnidentifiedImageError, OSError, SyntaxError, ValueError):
+        return False, "Uploaded file is corrupted or is not a valid image."
+
+    return True, mime_type
 
 def upload_attachment(
     request_id: int,

@@ -167,13 +167,13 @@ def get_my_complaints(
 
 
 # Get complaint details and status history
+
 @router.get("/{request_id}")
 def get_complaint_details(
     request_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-
     complaint = db.scalar(
         select(ServiceRequest).where(
             ServiceRequest.request_id == request_id
@@ -196,23 +196,23 @@ def get_complaint_details(
             detail="Complaint not found."
         )
 
-   # Staff can access only their currently assigned complaints
+    # Staff can access only their currently assigned complaints
     if current_user.role == "staff":
-
-       current_assignment = db.scalar(
-        select(Assignment).where(
-            Assignment.request_id == request_id,
-            Assignment.staff_id == current_user.user_id,
-            Assignment.is_current.is_(True)
-        )
-    )
-
-    if current_assignment is None:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You are not assigned to this complaint."
+        current_assignment = db.scalar(
+            select(Assignment).where(
+                Assignment.request_id == request_id,
+                Assignment.staff_id == current_user.user_id,
+                Assignment.is_current.is_(True)
+            )
         )
 
+        if current_assignment is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You are not assigned to this complaint."
+            )
+
+    # Fetch complaint status history
     history_records = db.scalars(
         select(StatusHistory)
         .where(StatusHistory.request_id == request_id)

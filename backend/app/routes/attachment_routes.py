@@ -139,7 +139,6 @@ def get_attachments(
             "request_id": attachment.request_id,
             "uploaded_by": attachment.uploaded_by,
             "file_name": attachment.file_name,
-            "file_path": attachment.file_path,
             "mime_type": attachment.mime_type,
             "file_size": attachment.file_size,
             "attachment_type": attachment.attachment_type,
