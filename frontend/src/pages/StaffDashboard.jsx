@@ -30,6 +30,7 @@ function StaffDashboard() {
 
   const [user, setUser] = useState(null)
   const [assignments, setAssignments] = useState([])
+  const [assignmentHistory, setAssignmentHistory] = useState([])
   const [currentPage, setCurrentPage] = useState(1)
 const itemsPerPage = 5
   const [searchTerm, setSearchTerm] = useState('')
@@ -53,20 +54,27 @@ const [statusSuccess, setStatusSuccess] = useState('')
 const [complaintDetails, setComplaintDetails] = useState(null)
 const [detailsLoading, setDetailsLoading] = useState(false)
 const [detailsError, setDetailsError] = useState('')
+const [attachments, setAttachments] = useState([])
+const [selectedFile, setSelectedFile] = useState(null)
+const [uploadingAttachment, setUploadingAttachment] = useState(false)
+const [attachmentError, setAttachmentError] = useState('')
+const [attachmentSuccess, setAttachmentSuccess] = useState('')
   const fetchDashboardData = async () => {
     try {
       setLoading(true)
       setError('')
 
-      const [
+     const [
   userResponse,
   assignmentsResponse,
+  historyResponse,
   categoriesResponse,
   locationsResponse,
   departmentsResponse
 ] = await Promise.all([
   api.get('/auth/me'),
   api.get('/assignments/my-assignments'),
+  api.get('/assignments/my-history'),
   api.get('/categories'),
   api.get('/locations'),
   api.get('/departments')
@@ -74,6 +82,7 @@ const [detailsError, setDetailsError] = useState('')
 
 setUser(userResponse.data)
 setAssignments(assignmentsResponse.data)
+setAssignmentHistory(historyResponse.data)
 setCategories(categoriesResponse.data)
 setLocations(locationsResponse.data)
 setDepartments(departmentsResponse.data)
@@ -102,26 +111,122 @@ setDepartments(departmentsResponse.data)
     navigate('/login')
   }
   const handleViewDetails = async (requestId) => {
-  try {
-    setDetailsLoading(true)
-    setDetailsError('')
-    setComplaintDetails(null)
+    try {
+      setDetailsLoading(true)
+      setDetailsError('')
+      setComplaintDetails(null)
+      setAttachments([])
+      setSelectedFile(null)
+      setAttachmentError('')
+      setAttachmentSuccess('')
 
-    const response = await api.get(
-      `/service-requests/${requestId}`
-    )
+      const [detailsResponse, attachmentsResponse] = await Promise.all([
+        api.get(`/service-requests/${requestId}`),
+        api.get(`/attachments/request/${requestId}`)
+      ])
 
-    setComplaintDetails(response.data)
+      setComplaintDetails(detailsResponse.data)
+      setAttachments(attachmentsResponse.data)
 
-  } catch (error) {
-    setDetailsError(
-      error.response?.data?.detail ||
-      'Unable to load complaint details.'
-    )
-  } finally {
-    setDetailsLoading(false)
+    } catch (error) {
+      if (error.response?.status === 401) {
+        clearAccessToken()
+        navigate('/login', { replace: true })
+        return
+      }
+
+      setDetailsError(
+        error.response?.data?.detail ||
+        'Unable to load complaint details and attachments.'
+      )
+    } finally {
+      setDetailsLoading(false)
+    }
   }
-}
+
+  // Upload resolution evidence
+  const handleUploadAttachment = async () => {
+    if (!selectedFile || !complaintDetails) {
+      setAttachmentError('Please select an image first.')
+      return
+    }
+
+    if (!['image/jpeg', 'image/png'].includes(selectedFile.type)) {
+      setAttachmentError('Only JPG, JPEG and PNG images are allowed.')
+      return
+    }
+
+    if (selectedFile.size > 5 * 1024 * 1024) {
+      setAttachmentError('File size must not exceed 5 MB.')
+      return
+    }
+
+    const uploadData = new FormData()
+    uploadData.append('file', selectedFile)
+    uploadData.append('attachment_type', 'resolution_evidence')
+
+    try {
+      setUploadingAttachment(true)
+      setAttachmentError('')
+      setAttachmentSuccess('')
+
+      const requestId = complaintDetails.complaint.request_id
+
+      const response = await api.post(
+        `/attachments/upload/${requestId}`,
+        uploadData
+      )
+
+      setAttachmentSuccess(
+        response.data.message || 'Evidence uploaded successfully.'
+      )
+
+      setSelectedFile(null)
+
+      const attachmentsResponse = await api.get(
+        `/attachments/request/${requestId}`
+      )
+
+      setAttachments(attachmentsResponse.data)
+
+    } catch (error) {
+      setAttachmentError(
+        error.response?.data?.detail ||
+        'Unable to upload evidence. Please try again.'
+      )
+    } finally {
+      setUploadingAttachment(false)
+    }
+  }
+
+  // Download an attachment
+  const handleDownloadAttachment = async (attachment) => {
+    try {
+      const response = await api.get(
+        `/attachments/${attachment.attachment_id}/download`,
+        { responseType: 'blob' }
+      )
+
+      const fileUrl = window.URL.createObjectURL(response.data)
+      const link = document.createElement('a')
+
+      link.href = fileUrl
+      link.download = attachment.file_name
+
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+
+      window.URL.revokeObjectURL(fileUrl)
+
+    } catch (error) {
+      setAttachmentError(
+        error.response?.data?.detail ||
+        'Unable to download this attachment.'
+      )
+    }
+  }
+
   const handleStatusUpdate = async (event) => {
   event.preventDefault()
 
@@ -245,6 +350,15 @@ const paginatedAssignments = filteredAssignments.slice(
       <div>
         <h1>Staff Dashboard</h1>
         <p>Welcome, {user?.full_name || 'Staff Member'}</p>
+
+<p className="staff-department-info">
+  Department: {
+    departments.find(
+      department =>
+        String(department.department_id) === String(user?.department_id)
+    )?.department_name || 'Not assigned'
+  }
+</p>
       </div>
 
       <div className="staff-header-actions">
@@ -277,7 +391,7 @@ const paginatedAssignments = filteredAssignments.slice(
             <ClipboardList size={25} />
             <div>
               <h3>{totalAssignments}</h3>
-              <p>Total Assignments</p>
+              <p>Current Assignments</p>
             </div>
           </div>
 
@@ -285,7 +399,7 @@ const paginatedAssignments = filteredAssignments.slice(
             <Clock size={25} />
             <div>
               <h3>{assignedCount}</h3>
-              <p>Assigned</p>
+              <p>Pending (Assigned)</p>
             </div>
           </div>
 
@@ -507,7 +621,9 @@ const paginatedAssignments = filteredAssignments.slice(
                       className="staff-update-btn"
                       onClick={() => {
                         setSelectedComplaint(item)
-                        setNewStatus('In Progress')
+                       setNewStatus(
+  item.status === 'Assigned' ? 'In Progress' : 'Resolved'
+)
                         setChangeNote('')
                         setStatusError('')
                         setStatusSuccess('')
@@ -545,6 +661,72 @@ const paginatedAssignments = filteredAssignments.slice(
           )}
 
         </section>
+        <section className="staff-assignments-section staff-history-list-section">
+  <h2>My Assignment History</h2>
+
+  {assignmentHistory.filter(item => !item.is_current).length === 0 ? (
+    <div className="staff-empty-state">
+      <ClipboardList size={40} />
+      <h3>No Assignment History</h3>
+      <p>You haven't completed or previously handled any assignments yet.</p>
+    </div>
+  ) : (
+    <div className="staff-assignments-list">
+      {assignmentHistory
+        .filter(item => !item.is_current)
+        .map(item => (
+          <div
+            className="staff-assignment-card"
+            key={item.assignment_id}
+          >
+            <div className="staff-assignment-top">
+              <span>Request #{item.request_id}</span>
+              <span className="staff-status">{item.status}</span>
+            </div>
+
+            <h3>{item.title}</h3>
+            <p>{item.description}</p>
+
+            <div className="staff-assignment-details">
+              <span>
+                Priority: <strong>{item.priority}</strong>
+              </span>
+
+              <span>
+                Assigned: {
+                  item.assigned_at
+                    ? new Date(item.assigned_at).toLocaleDateString()
+                    : 'Not available'
+                }
+              </span>
+
+              <span>
+                Resolved: {
+                  item.resolved_at
+                    ? new Date(item.resolved_at).toLocaleDateString()
+                    : 'Not resolved'
+                }
+              </span>
+            </div>
+
+            {item.assignment_notes && (
+              <div className="staff-assignment-notes">
+                <strong>Assignment Notes:</strong>
+                <p>{item.assignment_notes}</p>
+              </div>
+            )}
+
+            <button
+              className="staff-view-details-btn"
+              onClick={() => handleViewDetails(item.request_id)}
+            >
+              View Details
+            </button>
+          </div>
+        ))}
+    </div>
+  )}
+</section>
                 {selectedComplaint && (
           <div className="staff-modal-overlay">
             <div className="staff-modal">
@@ -560,13 +742,18 @@ const paginatedAssignments = filteredAssignments.slice(
                 <label htmlFor="staff-status">New Status</label>
 
                 <select
-                  id="staff-status"
-                  value={newStatus}
-                  onChange={(event) => setNewStatus(event.target.value)}
-                >
-                  <option value="In Progress">In Progress</option>
-                  <option value="Resolved">Resolved</option>
-                </select>
+  id="staff-status"
+  value={newStatus}
+  onChange={(event) => setNewStatus(event.target.value)}
+>
+  {selectedComplaint.status === 'Assigned' && (
+    <option value="In Progress">In Progress</option>
+  )}
+
+  {selectedComplaint.status === 'In Progress' && (
+    <option value="Resolved">Resolved</option>
+  )}
+</select>
 
                 <label htmlFor="staff-change-note">Change Note</label>
 
@@ -624,9 +811,13 @@ const paginatedAssignments = filteredAssignments.slice(
         <button
           type="button"
           onClick={() => {
-            setComplaintDetails(null)
-            setDetailsError('')
-          }}
+  setComplaintDetails(null)
+  setDetailsError('')
+  setAttachments([])
+  setSelectedFile(null)
+  setAttachmentError('')
+  setAttachmentSuccess('')
+}}
         >
           ×
         </button>
@@ -643,7 +834,24 @@ const paginatedAssignments = filteredAssignments.slice(
             <h3>
               Request #{complaintDetails.complaint.request_id}
             </h3>
+<div className="staff-citizen-info">
+  <h3>Citizen Information</h3>
 
+  <div className="staff-detail-item">
+    <strong>Name:</strong>
+    <span>{complaintDetails.citizen?.full_name || 'Not available'}</span>
+  </div>
+
+  <div className="staff-detail-item">
+    <strong>Email:</strong>
+    <span>{complaintDetails.citizen?.email || 'Not available'}</span>
+  </div>
+
+  <div className="staff-detail-item">
+    <strong>Phone:</strong>
+    <span>{complaintDetails.citizen?.phone || 'Not provided'}</span>
+  </div>
+</div>
             <div className="staff-detail-item">
               <strong>Title:</strong>
               <span>{complaintDetails.complaint.title}</span>
@@ -749,9 +957,104 @@ const paginatedAssignments = filteredAssignments.slice(
             )}
 
           </div>
-          
+
+          {/* Complaint Attachments */}
+          <div className="staff-history-section">
+            <h3>Complaint Attachments</h3>
+
+            {attachments.length === 0 ? (
+              <p>No attachments uploaded yet.</p>
+            ) : (
+              attachments.map(attachment => (
+                <div
+                  className="staff-history-item"
+                  key={attachment.attachment_id}
+                >
+                  <h4>{attachment.file_name}</h4>
+
+                  <p>
+                    Type: {attachment.attachment_type === 'complaint_photo'
+                      ? 'Complaint Photo'
+                      : 'Resolution Evidence'}
+                  </p>
+
+                  <span>
+                    Uploaded: {
+                      attachment.uploaded_at
+                        ? new Date(attachment.uploaded_at).toLocaleString()
+                        : 'Not available'
+                    }
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadAttachment(attachment)}
+                  >
+                    Download
+                  </button>
+                </div>
+              ))
+            )}
+
+            {['In Progress', 'Resolved'].includes(
+              complaintDetails.complaint.status
+            ) && (
+              <div className="staff-attachment-upload">
+                <h3>Upload Resolution Evidence</h3>
+
+                <p>
+                  Upload a JPG, JPEG or PNG image (maximum 5 MB).
+                </p>
+
+                <input
+                  type="file"
+                  accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                  onChange={(event) => {
+                    setSelectedFile(event.target.files[0] || null)
+                    setAttachmentError('')
+                    setAttachmentSuccess('')
+                  }}
+                />
+
+                {selectedFile && (
+                  <p>Selected file: {selectedFile.name}</p>
+                )}
+
+                {attachmentError && (
+                  <p className="staff-form-error">
+                    {attachmentError}
+                  </p>
+                )}
+
+                {attachmentSuccess && (
+                  <p className="staff-form-success">
+                    {attachmentSuccess}
+                  </p>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleUploadAttachment}
+                  disabled={!selectedFile || uploadingAttachment}
+                >
+                  {uploadingAttachment
+                    ? 'Uploading...'
+                    : 'Upload Evidence'}
+                </button>
+              </div>
+            )}
+
+            {attachmentError && !['In Progress', 'Resolved'].includes(
+              complaintDetails.complaint.status
+            ) && (
+              <p className="staff-form-error">
+                {attachmentError}
+              </p>
+            )}
+          </div>
+
         </>
-        
+
       )}
 
     </div>

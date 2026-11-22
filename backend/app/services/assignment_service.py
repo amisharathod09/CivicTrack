@@ -20,10 +20,12 @@ def assign_complaint(
 ):
     # 1. Find the complaint
     complaint = db.scalar(
-        select(ServiceRequest).where(
-            ServiceRequest.request_id == request_id
-        )
+    select(ServiceRequest)
+    .where(
+        ServiceRequest.request_id == request_id
     )
+    .with_for_update()
+)
 
     if complaint is None:
         return None, "Complaint not found."

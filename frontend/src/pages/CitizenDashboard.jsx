@@ -40,7 +40,11 @@ const [feedbackSuccess, setFeedbackSuccess] = useState('')
   const [complaintDetails, setComplaintDetails] = useState(null)
   const [detailsLoading, setDetailsLoading] = useState(false)
   const [detailsError, setDetailsError] = useState('')
-
+const [attachments, setAttachments] = useState([])
+const [selectedFile, setSelectedFile] = useState(null)
+const [uploadingAttachment, setUploadingAttachment] = useState(false)
+const [attachmentError, setAttachmentError] = useState('')
+const [attachmentSuccess, setAttachmentSuccess] = useState('')
   const [formData, setFormData] = useState({
     category_id: '',
     location_id: '',
@@ -175,37 +179,38 @@ const [feedbackSuccess, setFeedbackSuccess] = useState('')
 
   // Fetch and display complaint details
   const handleViewDetails = async (complaint) => {
-    setSelectedComplaint(complaint)
-    setComplaintDetails(null)
-    setDetailsError('')
-    setDetailsLoading(true)
+  setSelectedComplaint(complaint)
+  setComplaintDetails(null)
+  setAttachments([])
+  setDetailsError('')
+  setAttachmentError('')
+  setAttachmentSuccess('')
+  setDetailsLoading(true)
 
-    try {
-      const response = await api.get(
-        `/service-requests/${complaint.request_id}`
-      )
+  try {
+    const [detailsResponse, attachmentsResponse] = await Promise.all([
+      api.get(`/service-requests/${complaint.request_id}`),
+      api.get(`/attachments/request/${complaint.request_id}`)
+    ])
 
-      setComplaintDetails(response.data)
-      } catch (err) {
+    setComplaintDetails(detailsResponse.data)
+    setAttachments(attachmentsResponse.data)
+
+  } catch (err) {
     if (err.response?.status === 401) {
       clearAccessToken()
       navigate('/login', { replace: true })
       return
     }
 
-    console.error('Complaint details error:', err)
-
     setDetailsError(
-      `Error ${err.response?.status || ''}: ${
-        err.response?.data?.detail ||
-        err.message ||
-        'Unable to load complaint details.'
-      }`
+      err.response?.data?.detail ||
+      'Unable to load complaint details and attachments.'
     )
   } finally {
     setDetailsLoading(false)
   }
-  }
+}
 
   // Close complaint details popup
   const closeComplaintDetails = () => {
@@ -213,7 +218,86 @@ const [feedbackSuccess, setFeedbackSuccess] = useState('')
     setComplaintDetails(null)
     setDetailsError('')
   }
+// Upload a complaint photo
+const handleUploadAttachment = async () => {
+  if (!selectedFile || !selectedComplaint) {
+    setAttachmentError('Please select a photo first.')
+    return
+  }
 
+  if (!['image/jpeg', 'image/png'].includes(selectedFile.type)) {
+    setAttachmentError('Only JPG, JPEG and PNG images are allowed.')
+    return
+  }
+
+  if (selectedFile.size > 5 * 1024 * 1024) {
+    setAttachmentError('File size must not exceed 5 MB.')
+    return
+  }
+
+  const uploadData = new FormData()
+  uploadData.append('file', selectedFile)
+  uploadData.append('attachment_type', 'complaint_photo')
+
+  try {
+    setUploadingAttachment(true)
+    setAttachmentError('')
+    setAttachmentSuccess('')
+
+    const response = await api.post(
+      `/attachments/upload/${selectedComplaint.request_id}`,
+      uploadData
+    )
+
+    setAttachmentSuccess(
+      response.data.message || 'Photo uploaded successfully.'
+    )
+
+    setSelectedFile(null)
+
+    const attachmentsResponse = await api.get(
+      `/attachments/request/${selectedComplaint.request_id}`
+    )
+
+    setAttachments(attachmentsResponse.data)
+
+  } catch (err) {
+    setAttachmentError(
+      err.response?.data?.detail ||
+      'Unable to upload the photo. Please try again.'
+    )
+  } finally {
+    setUploadingAttachment(false)
+  }
+}
+
+// Download an attachment
+const handleDownloadAttachment = async (attachment) => {
+  try {
+    const response = await api.get(
+      `/attachments/${attachment.attachment_id}/download`,
+      { responseType: 'blob' }
+    )
+
+    const fileUrl = window.URL.createObjectURL(response.data)
+    const link = document.createElement('a')
+
+    link.href = fileUrl
+    link.download = attachment.file_name
+
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+
+    window.URL.revokeObjectURL(fileUrl)
+
+  } catch (err) {
+    setAttachmentError(
+      err.response?.data?.detail ||
+      'Unable to download this attachment.'
+    )
+  }
+}
   // Cancel a complaint
 const handleCancelComplaint = async (requestId) => {
   const confirmed = window.confirm(
@@ -903,6 +987,99 @@ const handleUpdateFeedback = async (feedbackId) => {
 
                       </div>
 
+                      {/* Complaint Attachments */}
+                      <div className="complaint-history">
+                        <h3>Complaint Attachments</h3>
+
+                        {attachments.length === 0 ? (
+                          <p>No attachments uploaded yet.</p>
+                        ) : (
+                          <div className="complaint-history-list">
+                            {attachments.map(attachment => (
+                              <div
+                                className="complaint-history-item"
+                                key={attachment.attachment_id}
+                              >
+                                <div className="history-marker"></div>
+
+                                <div className="history-content">
+                                  <strong>{attachment.file_name}</strong>
+
+                                  <p>
+                                    Type: {attachment.attachment_type === 'complaint_photo'
+                                      ? 'Complaint Photo'
+                                      : attachment.attachment_type}
+                                  </p>
+
+                                  <span>
+                                    Uploaded: {formatDate(attachment.uploaded_at)}
+                                  </span>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDownloadAttachment(attachment)}
+                                  >
+                                    Download
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {['Submitted', 'Assigned', 'In Progress'].includes(
+                          complaintDetails.complaint.status
+                        ) && (
+                          <div className="complaint-attachment-upload">
+                            <h3>Upload Complaint Photo</h3>
+
+                            <input
+                              type="file"
+                              accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                              onChange={(event) => {
+                                setSelectedFile(event.target.files[0] || null)
+                                setAttachmentError('')
+                                setAttachmentSuccess('')
+                              }}
+                            />
+
+                            {selectedFile && (
+                              <p>Selected file: {selectedFile.name}</p>
+                            )}
+
+                            {attachmentError && (
+                              <p className="complaint-form-error">
+                                {attachmentError}
+                              </p>
+                            )}
+
+                            {attachmentSuccess && (
+                              <p className="complaint-success">
+                                {attachmentSuccess}
+                              </p>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={handleUploadAttachment}
+                              disabled={!selectedFile || uploadingAttachment}
+                            >
+                              {uploadingAttachment
+                                ? 'Uploading...'
+                                : 'Upload Photo'}
+                            </button>
+                          </div>
+                        )}
+
+                        {!['Submitted', 'Assigned', 'In Progress'].includes(
+                          complaintDetails.complaint.status
+                        ) && (
+                          <p>
+                            Photo uploads are unavailable for this complaint status.
+                          </p>
+                        )}
+                      </div>
+
                     </>
                   ) : null}
 
@@ -1010,6 +1187,7 @@ const handleUpdateFeedback = async (feedbackId) => {
     </div>
   </div>
 )}
+
           </>
         )}
 

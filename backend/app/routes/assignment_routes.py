@@ -79,6 +79,45 @@ def get_my_assignments(
         for assignment, complaint in results
     ]
 
+# Staff can view their complete assignment history
+@router.get("/my-history")
+def get_my_assignment_history(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("staff"))
+):
+
+    results = db.execute(
+        select(Assignment, ServiceRequest)
+        .join(
+            ServiceRequest,
+            Assignment.request_id == ServiceRequest.request_id
+        )
+        .where(
+            Assignment.staff_id == current_user.user_id
+        )
+        .order_by(Assignment.assigned_at.desc())
+    ).all()
+
+    return [
+        {
+            "assignment_id": assignment.assignment_id,
+            "request_id": complaint.request_id,
+            "title": complaint.title,
+            "description": complaint.description,
+            "category_id": complaint.category_id,
+            "location_id": complaint.location_id,
+            "priority": complaint.priority,
+            "status": complaint.status,
+            "assigned_at": assignment.assigned_at,
+            "assignment_notes": assignment.notes,
+            "is_current": assignment.is_current,
+            "created_at": complaint.created_at,
+            "sla_due_at": complaint.sla_due_at,
+            "resolved_at": complaint.resolved_at
+        }
+        for assignment, complaint in results
+    ]
+
 # Admin assigns a complaint to a staff member
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_assignment(

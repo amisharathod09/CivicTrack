@@ -52,7 +52,7 @@ function App() {
   <ThemeToggle />
 
   <a href="/login" className="sidebar-login">Login</a>
-  <a href="#register" className="sidebar-register">Register</a>
+  <a href="/register" className="sidebar-register">Register</a>
 </div>
       </aside>
 

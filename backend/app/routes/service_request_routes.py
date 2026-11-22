@@ -196,13 +196,12 @@ def get_complaint_details(
             detail="Complaint not found."
         )
 
-    # Staff can access only their currently assigned complaints
+    # Staff can access complaints currently or previously assigned to them
     if current_user.role == "staff":
         current_assignment = db.scalar(
             select(Assignment).where(
                 Assignment.request_id == request_id,
                 Assignment.staff_id == current_user.user_id,
-                Assignment.is_current.is_(True)
             )
         )
 
@@ -211,6 +210,13 @@ def get_complaint_details(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You are not assigned to this complaint."
             )
+
+    # Fetch citizen information
+    citizen = db.scalar(
+        select(User).where(
+            User.user_id == complaint.citizen_id
+        )
+    )
 
     # Fetch complaint status history
     history_records = db.scalars(
@@ -223,6 +229,13 @@ def get_complaint_details(
     ).all()
 
     return {
+        "citizen": {
+            "citizen_id": citizen.user_id,
+            "full_name": citizen.full_name,
+            "email": citizen.email,
+            "phone": citizen.phone
+        } if citizen else None,
+
         "complaint": {
             "request_id": complaint.request_id,
             "citizen_id": complaint.citizen_id,

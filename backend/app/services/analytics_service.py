@@ -222,10 +222,6 @@ def get_category_analytics(db: Session):
         "categories": categories
     }
 
-
-from app.models.department import Department
-
-
 def get_department_analytics(db: Session):
 
     department_results = db.execute(
@@ -250,11 +246,12 @@ def get_department_analytics(db: Session):
                 )
             ).label("active")
         )
-        .join(
+        .select_from(Department)
+        .outerjoin(
             Category,
             Category.department_id == Department.department_id
         )
-        .join(
+        .outerjoin(
             ServiceRequest,
             ServiceRequest.category_id == Category.category_id
         )
@@ -508,7 +505,8 @@ def get_resolution_time_analytics(db: Session):
             func.count(ServiceRequest.request_id).label("total_resolved")
         ).where(
             ServiceRequest.status.in_(["Resolved", "Closed"]),
-            ServiceRequest.resolved_at.is_not(None)
+            ServiceRequest.resolved_at.is_not(None),
+            ServiceRequest.resolved_at >= ServiceRequest.created_at
         )
     ).one()
 
@@ -523,7 +521,8 @@ def get_resolution_time_analytics(db: Session):
         )
         .where(
             ServiceRequest.status.in_(["Resolved", "Closed"]),
-            ServiceRequest.resolved_at.is_not(None)
+            ServiceRequest.resolved_at.is_not(None),
+            ServiceRequest.resolved_at >= ServiceRequest.created_at
         )
         .order_by(
             func.timestampdiff(
@@ -566,7 +565,8 @@ def get_resolution_time_analytics(db: Session):
         )
         .where(
             ServiceRequest.status.in_(["Resolved", "Closed"]),
-            ServiceRequest.resolved_at.is_not(None)
+            ServiceRequest.resolved_at.is_not(None),
+            ServiceRequest.resolved_at >= ServiceRequest.created_at
         )
         .group_by(ServiceRequest.priority)
         .order_by(ServiceRequest.priority)

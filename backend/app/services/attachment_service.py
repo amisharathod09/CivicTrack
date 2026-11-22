@@ -99,7 +99,6 @@ def upload_attachment(
 
     if complaint is None:
         return None, "Complaint not found."
-
     # 5. Check citizen and staff permissions
     if current_user.role == "citizen":
 
@@ -117,19 +116,44 @@ def upload_attachment(
         if attachment_type != "resolution_evidence":
             return None, "Staff can upload resolution evidence only."
 
-        current_assignment = db.scalar(
-            select(Assignment).where(
-                Assignment.request_id == request_id,
-                Assignment.staff_id == current_user.user_id,
-                Assignment.is_current.is_(True)
+        if complaint.status == "In Progress":
+
+            current_assignment = db.scalar(
+                select(Assignment).where(
+                    Assignment.request_id == request_id,
+                    Assignment.staff_id == current_user.user_id,
+                    Assignment.is_current.is_(True)
+                )
             )
-        )
+
+        elif complaint.status == "Resolved":
+
+            current_assignment = db.scalar(
+                select(Assignment)
+                .where(
+                    Assignment.request_id == request_id
+                )
+                .order_by(
+                    Assignment.assigned_at.desc(),
+                    Assignment.assignment_id.desc()
+                )
+                .limit(1)
+            )
+
+            if (
+                current_assignment is not None
+                and current_assignment.staff_id != current_user.user_id
+            ):
+                current_assignment = None
+
+        else:
+            return None, (
+                "Resolution evidence can only be uploaded "
+                "for complaints in progress or resolved."
+            )
 
         if current_assignment is None:
-            return None, "You are not assigned to this complaint."
-
-        if complaint.status not in ["In Progress", "Resolved"]:
-            return None, "Resolution evidence can only be uploaded for complaints in progress or resolved."
+            return None, "You are not authorized to upload evidence for this complaint."
 
     else:
         return None, "You do not have permission to upload attachments."

@@ -14,7 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Attachment, User
+from app.models import Attachment, User, ServiceRequest, Assignment
 from app.services.attachment_service import upload_attachment
 from app.utils.auth_dependencies import (
     get_current_user,
@@ -52,8 +52,6 @@ def download_attachment(
         )
 
     # 2. Find the complaint associated with the attachment
-    from app.models import ServiceRequest, Assignment
-
     complaint = db.scalar(
         select(ServiceRequest).where(
             ServiceRequest.request_id == attachment.request_id
@@ -63,9 +61,7 @@ def download_attachment(
     if complaint is None:
         raise HTTPException(
             status_code=404,
-            detail="Attachment not found."
-        )
-
+            detail="Attachment not found.")
     # 3. Check access permissions
     if current_user.role == "citizen":
 
@@ -77,18 +73,43 @@ def download_attachment(
 
     elif current_user.role == "staff":
 
-        current_assignment = db.scalar(
-            select(Assignment).where(
-                Assignment.request_id == attachment.request_id,
-                Assignment.staff_id == current_user.user_id,
-                Assignment.is_current.is_(True)
-            )
-        )
+        if complaint.status in ["Assigned", "In Progress"]:
 
-        if current_assignment is None:
+            staff_assignment = db.scalar(
+                select(Assignment).where(
+                    Assignment.request_id == attachment.request_id,
+                    Assignment.staff_id == current_user.user_id,
+                    Assignment.is_current.is_(True)
+                )
+            )
+
+        elif complaint.status == "Resolved":
+
+            staff_assignment = db.scalar(
+                select(Assignment)
+                .where(
+                    Assignment.request_id == attachment.request_id
+                )
+                .order_by(
+                    Assignment.assigned_at.desc(),
+                    Assignment.assignment_id.desc()
+                )
+                .limit(1)
+            )
+
+            if (
+                staff_assignment is not None
+                and staff_assignment.staff_id != current_user.user_id
+            ):
+                staff_assignment = None
+
+        else:
+            staff_assignment = None
+
+        if staff_assignment is None:
             raise HTTPException(
                 status_code=403,
-                detail="You are not assigned to this complaint."
+                detail="You are not authorized to download attachments for this complaint."
             )
 
     elif current_user.role != "admin":
@@ -97,6 +118,7 @@ def download_attachment(
             status_code=403,
             detail="You do not have permission to download this attachment."
         )
+
 
     # 4. Resolve and validate the stored file path
     file_path = (BASE_DIR / attachment.file_path).resolve()
@@ -120,7 +142,103 @@ def download_attachment(
         media_type=attachment.mime_type,
         filename=attachment.file_name
     )
+# Get all attachments belonging to a specific complaint
+@router.get("/request/{request_id}")
+def get_request_attachments(
+    request_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # 1. Find the complaint
+    complaint = db.scalar(
+        select(ServiceRequest).where(
+            ServiceRequest.request_id == request_id
+        )
+    )
 
+    if complaint is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Complaint not found."
+        )
+
+    # 2. Check access permissions
+    if current_user.role == "citizen":
+
+        if complaint.citizen_id != current_user.user_id:
+            raise HTTPException(
+                status_code=404,
+                detail="Complaint not found."
+            )
+
+    elif current_user.role == "staff":
+
+        if complaint.status in ["Assigned", "In Progress"]:
+
+            staff_assignment = db.scalar(
+                select(Assignment).where(
+                    Assignment.request_id == request_id,
+                    Assignment.staff_id == current_user.user_id,
+                    Assignment.is_current.is_(True)
+                )
+            )
+
+        elif complaint.status == "Resolved":
+
+            staff_assignment = db.scalar(
+                select(Assignment)
+                .where(
+                    Assignment.request_id == request_id
+                )
+                .order_by(
+                    Assignment.assigned_at.desc(),
+                    Assignment.assignment_id.desc()
+                )
+                .limit(1)
+            )
+
+            if (
+                staff_assignment is not None
+                and staff_assignment.staff_id != current_user.user_id
+            ):
+                staff_assignment = None
+
+        else:
+            staff_assignment = None
+
+        if staff_assignment is None:
+            raise HTTPException(
+                status_code=403,
+                detail="You are not authorized to view attachments for this complaint."
+            )
+
+    elif current_user.role != "admin":
+
+        raise HTTPException(
+            status_code=403,
+            detail="You do not have permission to view these attachments."
+        )
+
+    # 3. Fetch complaint attachments
+    attachments = db.scalars(
+        select(Attachment)
+        .where(Attachment.request_id == request_id)
+        .order_by(Attachment.uploaded_at.desc())
+    ).all()
+
+    return [
+        {
+            "attachment_id": attachment.attachment_id,
+            "request_id": attachment.request_id,
+            "uploaded_by": attachment.uploaded_by,
+            "file_name": attachment.file_name,
+            "mime_type": attachment.mime_type,
+            "file_size": attachment.file_size,
+            "attachment_type": attachment.attachment_type,
+            "uploaded_at": attachment.uploaded_at
+        }
+        for attachment in attachments
+    ]
 # Get all attachments (Admin only)
 @router.get("")
 def get_attachments(
@@ -189,7 +307,7 @@ async def create_attachment(
 ):
     # Read at most 5 MB + 1 byte to detect oversized uploads
     file_content = await file.read(5 * 1024 * 1024 + 1)
-
+    await file.close()
     attachment, error = upload_attachment(
         request_id=request_id,
         attachment_type=attachment_type,
