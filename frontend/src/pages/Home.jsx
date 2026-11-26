@@ -6,6 +6,7 @@ import {
   CirclePlus,
   Search
 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import ThemeToggle from '../components/ThemeToggle'
 import '../App.css'
 
@@ -37,15 +38,14 @@ function App() {
             <span>Services</span>
           </a>
 
-          <a href="#report">
-            <CirclePlus size={20} />
-            <span>Report an Issue</span>
-          </a>
-
-          <a href="#track">
-            <Search size={20} />
-            <span>Track Complaint</span>
-          </a>
+          <Link to="/citizen">
+  <CirclePlus size={20} />
+  <span>Report an Issue</span>
+</Link>
+          <Link to="/citizen">
+  <Search size={20} />
+  <span>Track Complaint</span>
+</Link>
         </nav>
 
        <div className="sidebar-bottom">

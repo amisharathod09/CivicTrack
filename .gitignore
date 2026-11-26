@@ -18,3 +18,22 @@ backend/uploads/
 # Frontend dependencies and production build
 frontend/node_modules/
 frontend/dist/
+
+
+# CivicTrack analytics generated outputs
+analytics/__pycache__/
+analytics/**/__pycache__/
+
+# Exclude generated analytics outputs
+analytics/outputs/*
+
+# Keep the ML model directory
+!analytics/outputs/ml/
+analytics/outputs/ml/*
+!analytics/outputs/ml/models/
+analytics/outputs/ml/models/*
+!analytics/outputs/ml/models/*.joblib
+
+# Exclude Power BI file
+*.pbix
+analytics/outputs/powerbi/
